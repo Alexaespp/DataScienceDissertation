@@ -1,0 +1,1044 @@
+Imports
+from pandas import read_csv
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.dates as mdates
+from pandas import DataFrame
+from pandas import Grouper
+from matplotlib import pyplot
+from pandas import datetime
+from pandas import concat
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+from pandas import Series
+import warnings
+warnings.filterwarnings("ignore")
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.graphics.tsaplots import plot_pacf
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from pmdarima import auto_arima
+from pmdarima.arima import ARIMA
+from statsmodels.tsa.arima.model import ARIMA
+
+Figure 1: Nominal GDP and GDP at PPP for China (2022)
+ppp= pd.read_csv('nominal-ppp.csv')
+ppp_sorted_nominal = ppp.sort_values('Nominal (current US$)', ascending=False)
+ppp_sorted_ppp = ppp.sort_values('PPP (current international $)', ascending=False)
+fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+sns.set(style="dark")
+ax1 = sns.barplot(x='Nominal (current US$)', y='Country Name', data=ppp_sorted_nominal, palette=['skyblue' if country != 'China' else 'red' for country in ppp_sorted_nominal['Country Name']], ax=axs[0])
+axs[0].set_xlabel('Current US$')
+axs[0].set_ylabel('Country')
+for index, value in enumerate(ppp_sorted_nominal['Nominal (current US$)']):
+    ax1.text(value, index, str(round(value, 2)), va='center', ha='left')
+ax2 = sns.barplot(x='PPP (current international $)', y='Country Name', data=ppp_sorted_ppp, palette=['skyblue' if country != 'China' else 'red' for country in ppp_sorted_ppp['Country Name']], ax=axs[1])
+axs[1].set_xlabel('Current international $')
+axs[1].set_ylabel('Country')
+for index, value in enumerate(ppp_sorted_ppp['PPP (current international $)']):
+    ax2.text(value, index, str(round(value, 2)), va='center', ha='left')
+plt.tight_layout()
+plt.show()
+
+Figure 2: Share of Global GDP at PPP (1500-2020)
+data=pd.read_csv("gdp1500.csv")
+columns =['China', 'USA', 'India', 'Japan', 'Germany', 'Russia/USSR', 'UK', 'France', 'Rest of World']
+colours =['#DC143C', '#BFEFFF', '#FF7D40', '#03A89E', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#87CEFF']
+plt.figure(figsize=(10, 6))
+plt.stackplot(data['X.1'], *[data[column] for column in columns], labels=columns, colors=colours)
+plt.xlabel('Year')
+plt.ylabel('Stacked GDP  (%)')
+plt.title('Share of Global GDP since 1500' )
+plt.axvline(x=1644, color='black', linestyle='--',linewidth=4)
+plt.axvline(x=1912, color='black', linestyle='--',linewidth=4)
+plt.text(1500,20,  'The Ming Dynasty', rotation=0, fontsize=16)
+plt.text(1650,20,  'The Qing Dynasty', rotation=0, fontsize=16)
+plt.axvline(x=1840, color='blue', linestyle='--' )
+plt.text(1840,80,  'Opium Wars', rotation=0, fontsize=14, color='blue')
+plt.axvline(x=1860,color='blue', linestyle='--')
+plt.axvline(x=1851, color='green', linestyle='--')
+plt.text(1852,70,  'Taiping Rebelion', rotation=0, fontsize=14, color='green')
+plt.axvline(x=1864, color='green', linestyle='--')
+plt.axvline(x=1861, color='yellow', linestyle='--')
+plt.text(1863,90,  'Self Strength. Movem.', rotation=0, fontsize=14, color='yellow')
+plt.axvline(x=1895,color='yellow', linestyle='--' )
+plt.axvline(x=1949, color='brown', linestyle='--' )
+plt.text(1950,30,  'Mao Zedong', rotation=90, fontsize=14, color='brown')
+plt.text(1980,30,  'Reforms', rotation=90, fontsize=14, color='black')
+plt.axvline(x=1976, color='black', linestyle='--')
+plt.axvline(x=1939, color='black', linestyle='--')
+plt.text(1940,10,  'WW2',rotation=90, fontsize=14, color='black')
+plt.axvline(x=1912, color='black', linestyle='--')
+plt.text(1915,20,  'Creation of PRC', rotation=90, fontsize=14, color='black')
+plt.text(1915,4,  'WW1', rotation=90,fontsize=14, color='black')
+plt.axvspan(1861, 1895, color='yellow', alpha=0.3)
+plt.axvspan(1851, 1864, color='green', alpha=0.5)
+plt.axvspan(1840,1860, color='blue', alpha=0.3)
+plt.legend(loc='upper left')
+plt.show()plt.axvline(x=1976, color='black', linestyle='--' )
+plt.axvline(x=1939, color='black', linestyle='--')
+plt.text(1940,10,  'WW2', rotation=90, fontsize=14, color='black')
+plt.axvline(x=1912, color='black', linestyle='--')
+plt.text(1915,20,  'Creation of PRC', rotation=90, fontsize=14, color='black')
+plt.text(1915,4,'WW1', rotation=90, fontsize=14, color='black')
+plt.axvspan(1861, 1895, color='yellow', alpha=0.3)
+plt.axvspan(1851, 1864, color='green', alpha=0.5)
+plt.axvspan(1840, 1860, color='blue', alpha=0.3)
+plt.legend(loc='upper left')
+plt.show()
+
+Figure 3: Chinese GDP (Billions of US $) (1978-2022)
+
+gdp= pd.read_csv('china_gdp_before.csv',skiprows=16)
+gdp = gdp[(gdp['date'] >= 1978)]
+plt.figure(figsize=(12, 8))
+plt.plot(gdp['date'], gdp[' GDP ( Billions of US $)'])
+plt.xlabel('date') 
+plt.ylabel('GDP (Billions of US $)')
+plt.xticks(gdp['date'], rotation=90)  
+plt.axvline(x=2007, color='green', linestyle=':')
+plt.text(2007, 7500, 'Financial Crisis', rotation=90, fontsize=14, color='green')
+plt.axvline(x=1989, color='green', linestyle=':')
+plt.text(1989, 6000, 'Tiananmen Square', rotation=90, fontsize=14, color='green')
+plt.grid( linewidth=0.1)
+plt.show()
+
+Figure 4: Annual % Change of GDP of China (1978-2022)
+gdp= pd.read_csv('china_gdp_before.csv',skiprows=16)
+gdp = gdp[(gdp['date'] >= 1978)]
+years = gdp['date']
+annual_change = gdp[' Annual % Change']
+plt.figure(figsize=(12, 8))
+bars= plt.bar(years, annual_change, color='skyblue')
+plt.xlabel('Years')
+plt.ylabel('Annual % Change')
+plt.xticks(gdp['date'], rotation=90)
+plt.grid(axis='y')
+plt.text(1988, 11.7226, '11.22%', ha='center', fontsize=12, color='black')
+plt.text(1989, 5.2063, '4.20%', ha='center', fontsize=12, color='black')
+plt.text(1990.5, 4.5203, '3.92%', ha='center', fontsize=12, color='black')
+plt.text(1992, 14.2245, '14.22%', ha='center', fontsize=12, color='black')
+plt.text(2007, 14.2309, '14.23%', ha='center', fontsize=12, color='black')
+plt.text(2009, 9.3987, '9.39%', ha='center', fontsize=12, color='black')
+plt.text(2010, 10.6359, '10.63%', ha='center', fontsize=12, color='black')
+plt.axvline(x=2007, color='green', linestyle=':', linewidth=2)
+plt.text(2007, 15, 'Financial Crisis', fontsize=14, color='green', fontweight='bold')
+plt.axvline(x=1989, color='green', linestyle=':', linewidth=2)
+plt.text(1989, 15, 'Tiananmen Square', fontsize=14, color='green', fontweight='bold')
+plt.text(2019, 5.9505, '5.95%', ha='center', fontsize=12, color='black')
+plt.text(2020, 2.2386, '2.23%', ha='center', fontsize=12, color='black')
+plt.text(2022, 2.9908, '2.99%', ha='center', fontsize=12, color='black')
+bars[10].set_color('red')  
+bars[11].set_color('red') 
+bars[12].set_color('red') 
+bars[14].set_color('red')
+bars[29].set_color('red')  
+bars[32].set_color('red')
+bars[31].set_color('red') 
+bars[31].set_color('red') 
+bars[41].set_color('red')
+bars[42].set_color('red')
+bars[44].set_color('red')  
+plt.show()
+
+Figure 5: Inflation Rate (%) of China (1987-2022)
+inflation= pd.read_csv('china_inflation_new.csv',skiprows=16)
+sns.set(style="whitegrid")
+custom_colors = sns.color_palette("Set2")
+plt.figure(figsize=(12, 8))
+plt.fill_between(inflation['year'], inflation[' Inflation Rate (%)'], color=custom_colors[0], alpha=0.4)
+plt.xlabel('Years', fontsize=12)
+plt.xticks(inflation['year'], rotation=90)
+plt.ylabel('Inflation Rate (%)', fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.text(1988, 18.8118, '18.81%', fontsize=12, color='black')
+plt.text(1990, 3.0523, '3.05%', fontsize=12, color='black')
+plt.text(1994, 24.257, '24.25%', fontsize=12, color='black')
+plt.text(1999, -1.4015, '-1.40%', fontsize=12, color='black')
+plt.text(2002, -0.732, '-0.73%', fontsize=12, color='black')
+plt.text(2008, 5.9253, '5.92%', fontsize=12, color='black')
+plt.text(2009, -0.7282, '-0.72%', fontsize=12, color='black')
+plt.text(2011, 2.9908, '2.99%', fontsize=12, color='black')
+plt.text(2019, 2.8992, '2.89%', fontsize=12, color='black')
+plt.text(2021, 0.981, '0.98%', fontsize=12, color='black')
+plt.show()
+
+Figure 7: Trade values of China (1976-2022)
+imports = pd.read_csv('china_imports.csv',skiprows=16)
+exports = pd.read_csv('china_exports.csv',skiprows=16)
+plt.figure(figsize=(12, 8))
+plt.plot(imports['year'], imports[' Billions of US $'], label='Imports')
+plt.plot(exports['year'], exports[' Billions of US $'], label='Exports')
+plt.axvline(x=2009, color='green', linestyle=':')
+plt.text(2009, 84, 'Financial crisis', rotation=0, fontsize=16, color='green')
+plt.text(2020, 700, 'Covid-19 pandemic', rotation=90, fontsize=14, color='black')
+plt.axvspan(2019, 2021, color='green', alpha=0.3)
+plt.xlabel('Years')
+plt.ylabel('Amount (in Billions of US $)')
+plt.xticks(imports['year'], rotation=90)
+plt.grid(True)
+plt.legend()
+plt.show()
+
+Figure 8: Change of % in China's trade values (1976-2022)
+imports = pd.read_csv('china_imports.csv',skiprows=16)
+exports = pd.read_csv('china_exports.csv',skiprows=16)
+plt.figure(figsize=(12, 8))
+plt.plot(imports['year'], imports[' Billions of US $'], label='Imports')
+plt.plot(exports['year'], exports[' Billions of US $'], label='Exports')
+plt.axvline(x=2009, color='green', linestyle=':')
+plt.text(2009, 84, 'Financial crisis', rotation=0, fontsize=16, color='green')
+plt.text(2020, 700, 'Covid-19 pandemic', rotation=90, fontsize=14, color='black')
+plt.axvspan(2019, 2021, color='green', alpha=0.3)
+plt.xlabel('Years')
+plt.ylabel('Amount (in Billions of US $)')
+plt.xticks(imports['year'], rotation=90)
+plt.grid()
+plt.legend()
+plt.show()
+
+Figure 9: China's Exports by Country in 2022 (in billions of US$ and %)
+
+countries = ['United States', 'Hong Kong', 'Japan', 'South Korea', 'Vietnam', 'India', 'Netherlands',
+             'Germany', 'Malaysia', 'Taiwan', 'United Kingdom', 'Singapore', 'Australia', 'Thailand', 'Mexico']
+exports = [582.8, 297.5, 172.9, 162.6, 147, 118.5, 117.7, 116.2, 93.7, 81.6, 81.5, 81.2, 78.8, 78.5, 77.5]
+percentages = [16.2, 8.3, 4.8, 4.5, 4.1, 3.3, 3.3, 3.2, 2.6, 2.3, 2.3, 2.3, 2.2, 2.2, 2.2]
+fig, ax1 = plt.subplots(figsize=(12, 8)) 
+ax2 = ax1.twinx()
+ax1.bar(countries, exports, color='b')
+ax2.plot(countries, percentages, 'r', linewidth= 6, alpha= 0.7)
+ax1.set_xlabel('Countries')
+ax1.set_ylabel('Exports in billion USD', color='b')
+ax2.set_ylabel('Percentage of China's total exports', color='r')
+plt.setp(ax1.get_xticklabels(), rotation=45, ha="right")
+for i, v in enumerate(exports_billion):
+    ax1.text( i, v + 10, str(v), color='black', ha='center', fontsize= 14)
+for i, v in enumerate(percentages):
+    ax2.text(i, v - 0.5, str(v)+ '%', color='red', ha='center', fontsize= 16)
+plt.grid(False)
+plt.show()
+
+Figure 10: Countries Generating China’s Biggest Trading Surpluses (2022)
+countries = ['United States', 'Hong Kong', 'Netherlands', 'India', 'Mexico', 'United Kingdom', 'Vietnam', 'Singapore', 'Philippines', 'Poland']
+surpluses = [403.8, 289.7, 105.2, 101.0, 60.1, 59.7, 59.0, 47.2, 41.6, 33.1]
+sorted = sorted(range(len(surpluses)), key=lambda k: surpluses[k], reverse=True)
+sorted_countries = [countries[i] for i in sorted]
+sorted_surpluses = [surpluses[i] for i in sorted]
+plt.figure(figsize=(12, 8))
+plt.barh(sorted_countries, sorted_surpluses, color='skyblue')
+plt.xlabel('Trading Surpluses (in billion USD)')
+plt.ylabel('Countries')
+plt.grid(axis='x', linestyle='--', alpha=0.6)
+for i, value in enumerate(sorted_surpluses):
+    plt.text(value, i, f'${value}B', va='center', fontsize=14)
+plt.show()
+
+Figure 11: Countries Causing China’s Greatest Trading Deficits (2022)
+deficit_countries = ['Taiwan', 'Australia', 'Brazil', 'Switzerland', 'Saudi Arabia', 'Russia', 'South Korea', 'Oman', 'Iraq', 'Chile']
+deficits = [-156.5, -63.3, -47.6, -42.2, -40.1, -38.0, -37.0, -32.0, -25.4, -22.0]
+plt.figure(figsize=(12, 8))
+plt.barh(deficit_countries, deficits, color='lightcoral')
+plt.xlabel('Trading Deficits (in billion USD)')
+plt.ylabel('Countries')
+plt.grid(axis='x', linestyle='--', alpha=0.6)
+for i, value in enumerate(deficits):
+    plt.text(value, i, f'${abs(value)}B', va='center', ha='left' if value < 0 else 'right', fontsize=14)
+plt.show()
+
+Figure 12: Foreign Direct Investment in China (1979-2022)
+forinvestements = pd.read_csv('china-foreign-direct-investment.csv',skiprows=16)
+plt.figure(figsize=(12, 8))
+plt.plot(forinvestements['year'], forinvestements[' Inflows  US $'])
+plt.axvspan(1997, 1998, color='mediumturquoise', alpha=0.3)
+plt.axvline(x=2009, color='green', linestyle=':')
+plt.text(2009, 10.435, 'Financial Crisis', rotation=0, fontsize=16, color='green')
+plt.text(1997, 60.4801,  'Ease-Asian Financial Crisis', rotation=90, fontsize=14, color='black')
+plt.axvspan(2019, 2021, color='green', alpha=0.3)
+plt.text(2020, 50.4801,  'Covid-19 pandemic', rotation=90, fontsize=14, color='black')
+plt.xlabel('Years')
+plt.ylabel('Billions of US $')
+plt.xticks(forinvestements['year'], rotation=90)
+plt.grid()
+plt.show()
+
+Figure 13: Distribution of Inward FDI Stock in China in 2021 by Country/Region of Origin
+countries = ['Hong Kong', 'Virgin Islands', 'Japan', 'Singapore', 'United States', 'South Korea', 
+             'Taiwan', 'Cayman Islands', 'Germany', 'Samoa', 'United Kingdom', 'Netherlands', 
+             'Macao', 'France', 'Mauritius', 'Bermuda', 'Australia', 'Canada', 'Switzerland', 'Malaysia']
+fdi = [54.70, 6.90, 4.70, 4.60, 3.50, 3.40, 2.70, 1.90, 1.50, 1.20, 1.10, 1, 0.80, 0.70, 0.60, 0.50, 0.40, 0.40, 0.40, 0.30]
+plt.figure(figsize=(12, 8))
+plt.barh(countries, fdi, color='skyblue')
+plt.xlabel('Inward FDI Stock (Percentage)')
+plt.grid(axis='x', linestyle='--', alpha=0.6)
+for i, value in enumerate(fdi_stock):
+    plt.text(value, i, f'{value}%', va='center')
+plt.show()
+
+Figure 14: Comparison of Economic Metrics
+
+inflation=pd.read_csv('china_inflation_new.csv', skiprows=16)
+inflation['date'] =pd.to_datetime(inflation['date'])
+inflation['date'] =inflation['date'].dt.year 
+gdp = pd.read_csv('china_gdp_before.csv', skiprows=16)
+imports = pd.read_csv('china_imports.csv', skiprows=16)
+imports['date'] = pd.to_datetime(imports['date'])
+imports['date'] =imports['date'].dt.year 
+exports = pd.read_csv('china_exports.csv', skiprows=16)
+exports['date'] =pd.to_datetime(exports['date'])
+exports['date'] =exports['date'].dt.year 
+forinvestments = pd.read_csv('china-foreign-direct-investment.csv', skiprows=16)
+forinvestments['date'] =pd.to_datetime(forinvestments['date'])
+forinvestments['date'] = forinvestments['date'].dt.year
+inf=inflation[inflation['date'] > 1987]
+gd=gdp[gdp['date'] > 1987]
+imp=imports[imports['date'] > 1987]
+exp=exports[exports['date'] > 1987]
+fori=forinvestments[forinvestments['date'] > 1987]
+inf_scaled=inf.iloc[:, 1]
+gd_scaled = gd.iloc[:, 1]
+imp_scaled=imp.iloc[:, 1]
+exp_scaled= exp.iloc[:, 1]
+fori_scaled =fori.iloc[:, 1]
+scaler_minmax= MinMaxScaler()
+inf_minmax =scaler_minmax.fit_transform(inf_scaled.values.reshape(-1, 1))
+gd_minmax =scaler_minmax.fit_transform(gd_scaled.values.reshape(-1, 1))
+imp_minmax=scaler_minmax.fit_transform(imp_scaled.values.reshape(-1, 1))
+exp_minmax =scaler_minmax.fit_transform(exp_scaled.values.reshape(-1, 1))
+fori_minmax =scaler_minmax.fit_transform(fori_scaled.values.reshape(-1, 1))
+plt.figure(figsize=(12, 8))
+plt.plot(inf_minmax, label='Inflation Rate (Scaled)')
+plt.plot(gd_minmax, label='GDP (Scaled)')
+plt.plot(imp_minmax, label='Imports (Scaled)')
+plt.plot(exp_minmax, label='Exports (Scaled) ')
+plt.plot(fori_minmax, label='Foreign Direct Investments (Scaled) ')
+plt.xlabel('Years')
+plt.ylabel('Standardized Value')
+plt.legend(loc=9)
+plt.grid()
+plt.show()
+
+Figure 15: GDP Per Capita of China Line plot (1960 -2022)
+series= pd.read_csv('china_gdp_before.csv',skiprows=16)
+X=series[' Per Capita (US $)']
+plt.figure(figsize=(6, 4))
+plt.plot(series['date'], X)
+plt.ylabel('Per Capita US$')
+plt.xlabel('Date')
+plt.grid()
+plt.show()
+
+
+Figure 16: GDP of China Histogram of frequency distribution of values
+series= pd.read_csv('china_gdp_before.csv',skiprows=16)
+X=series[' Per Capita (US $)']
+pyplot.figure(1)
+pyplot.subplot(211)
+X.hist()
+plt.xlabel('Values')
+plt.ylabel('Frequency')
+pyplot.show()
+
+Figure 17: Box and Whiskers plot for Chinese GDP (1960-2022)
+series = pd.read_csv('china_gdp_before.csv', skiprows=16)
+X=series[' Per Capita (US $)']
+series['10-Year Interval']=series['date'] // 10 * 10
+plt.figure(figsize=(6, 4))
+sns.boxplot(x='10-Year Interval', y=X, data=series)
+plt.xlabel('10-year Interval')
+plt.ylabel('Per Capita US$')
+plt.grid()
+plt.show()
+
+
+GDP Manual model construction
+Dickey Fuller
+series = pd.read_csv('china_gdp_before.csv', skiprows=16)
+X = series[' Per Capita (US $)']
+result = adfuller(X)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+    print('\t%s: %.3f' % (key, value))
+
+Figure 18: GDP ACF and PACF plot	
+series = pd.read_csv('china_gdp_before.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year
+X = series[' Per Capita (US $)']
+pyplot.figure()
+pyplot.subplot(211)
+plot_acf(Χ, lags=30, ax=pyplot.gca())
+pyplot.subplot(212)
+plot_pacf(Χ, lags=30, ax=pyplot.gca())
+pyplot.show()
+
+Figure 19: GDP prediction on train data with ARIMA model (4, 1, 2)
+dates = pd.to_datetime(series['date'])
+train_size = int(len(X) * 0.88)
+train, test = X[0:train_size], X[train_size:len(X)]
+order = (4, 1, 2)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel = ARIMAmodel.fit()
+y_pred = ARIMAmodel.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Per Capita US$')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+arma_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+
+
+Automatic model for GDP
+
+model = auto_arima(train, start_p=0, max_p=6, start_q=0, max_q=6, max_d=2, suppress_warnings=True)
+print("Best ARIMA Order:", model.order)
+model_fit = ARIMA(order=model.order)
+model_fit.fit(train)
+print("ARIMA Model Parameters:")
+print(model_fit.summary())
+
+Figure 20: GDP predictions on train set with SARIMAX (2, 2, 2) 
+
+SARIMAmodel = SARIMAX(train, order=order)
+SARIMAmodel_fit = SARIMAmodel.fit()
+y_pred = SARIMAmodel_fit.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = SARIMAmodel_fit.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Per Capita US$')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='SARIMA Predictions')
+plt.legend()
+plt.show()
+sarima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", sarima_rmse)
+absolute_percentage_errors = np.abs((test - y_pred_df["Predictions"]) / test) * 100
+mape = absolute_percentage_errors.mean()
+print(f'MAPE: {mape:.2f}%')
+
+
+
+
+
+Figure 21: GDP prediction with ARIMA (2, 2, 1) 
+
+dates = pd.to_datetime(series['date'])
+forecast_steps = 10  
+arima_model = SARIMAX(X, order=(2, 2, 1))
+arima_fit = arima_model.fit()
+forecast_index = pd.date_range(start=dates.iloc[-1], periods=forecast_steps + 1, freq='A')[1:]
+forecast_values = arima_fit.get_forecast(steps=forecast_steps).predicted_mean
+
+plt.figure(figsize=(12, 8))
+plt.plot(dates, X, label='Original Data')
+plt.plot(forecast_index[:2], forecast_values[:2], label='2-year Forecast',linestyle='dashed', color='red', marker='o')
+plt.plot(forecast_index[2:], forecast_values[2:],  label='8-year Forecast', linestyle='dashed', color='black', marker='o')
+for i, txt in enumerate(forecast_values[:2]):
+    if i == 0 or i == 1: 
+        plt.text(forecast_index[i], txt, f'{round(txt, 2)}', ha='right', va='bottom', color='red')
+for i, txt in enumerate(forecast_values[5:9]): 
+    if i == 0 or i == 3:
+        plt.text(forecast_index[i + 5], txt, f'{round(txt, 2)}', ha='right', va='bottom', color='black')
+plt.title('')
+plt.xlabel('Index')
+plt.ylabel('Inflows (US $)')
+plt.legend()
+plt.grid()
+plt.show()
+
+Figure 22: Inflation Rate of China Line plot (1987-2022)
+series = pd.read_csv('china_inflation_new.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflation Rate (%)']
+plt.figure(figsize=(6, 4))
+plt.plot(series['date'], X)
+plt.ylabel('Per Capita US$')
+plt.xlabel('Date')
+plt.grid()
+plt.show()
+
+Figure 23: Inflation of China Histogram of frequency distribution of values
+series = pd.read_csv('china_inflation_new.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflation Rate (%)']
+pyplot.figure(1)
+pyplot.subplot(211)
+X.hist()
+plt.xlabel('Values')
+plt.ylabel('Frequency')
+pyplot.show()
+
+Figure 24: Inflation Rates of China Box and Whisker plots
+
+series = pd.read_csv('china_inflation_new.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflation Rate (%)']
+series['10-Year Interval']=series['date'] // 10 * 10
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='10-Year Interval', y=X, data=series)
+plt.xlabel('10-year Interval')
+plt.ylabel('Inflation Rate (%)')
+plt.grid()
+plt.show()
+
+Inflation Manual model construction
+Dickey Fuller
+
+
+series = pd.read_csv('china_inflation_new.csv', skiprows=16)
+X = series[' Inflation Rate (%)']
+result = adfuller(X)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+    print('\t%s: %.3f' % (key, value))
+
+
+Figure 25: Inflation ACF and PACF
+series = pd.read_csv('china_inflation_new.csv', skiprows=16)
+X = series[' Inflation Rate (%)']
+pyplot.figure()
+pyplot.subplot(211)
+plot_acf(X, lags=17, ax=pyplot.gca())
+pyplot.subplot(212)
+plot_pacf(X, lags=17, ax=pyplot.gca())
+pyplot.show()
+
+Figure 26: Inflation prediction on train data with ARIMA (2, 1, 2) model
+train_size = int(len(X) * 0.88)
+train, test = y[0:train_size], y[train_size:len(y)]
+order = (2, 1, 2)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel = ARIMAmodel.fit()
+y_pred = ARIMAmodel.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+dates = pd.to_datetime(series['date'])
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Inflation Rate (%)')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+arma_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arma_rmse)
+
+Automatic model for Inflation
+
+model = auto_arima(train, suppress_warnings=True)
+print("Best ARIMA Order:", model.order)
+model_fit = ARIMA(train, order=model.order)
+model_fit = model_fit.fit()
+print("ARIMA Model Parameters:")
+print(model_fit.summary())
+
+
+
+	
+Figure 27: Inflation rate predictions on training set with ARIMA(0, 1, 2)
+
+
+order = (0, 1, 2)
+arima_model = ARIMA(train, order=order)
+arima_fit = arima_model.fit()
+y_pred = arima_fit.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = arima_fit.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Inflation Rate (%)')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+absolute_percentage_errors = np.abs((test - y_pred_df["Predictions"]) / test) * 100
+mape = absolute_percentage_errors.mean()
+print(f'MAPE: {mape:.2f}%')
+Figure 28: Inflation prediction on ARIMA (0, 1, 2) model
+
+
+dates = pd.to_datetime(series['date'])
+forecast_steps = 10
+arima_model = ARIMA(X, order=(0, 1, 2))
+arima_fit = arima_model.fit()
+forecast_index = pd.date_range(start=dates.iloc[-1], periods=forecast_steps + 1, freq='A')[1:]
+forecast_values = arima_fit.get_forecast(steps=forecast_steps).predicted_mean
+
+plt.figure(figsize=(12, 8))
+plt.plot(dates, X, label='Original Data')
+plt.plot(forecast_index[:2], forecast_values[:2], label='2-year Forecast',linestyle='dashed', color='red', marker='o')
+plt.plot(forecast_index[2:], forecast_values[2:],  label='8-year Forecast', linestyle='dashed', color='black', marker='o')
+plt.text(36, 3.9 , ' 3.11', ha='right', va='bottom', color='red')
+plt.text(39, 3 , '2.27', ha='right', va='bottom', color='red')
+plt.xlabel('Index')
+plt.ylabel('Inflows (US $)')
+plt.legend()
+plt.grid()
+plt.show()
+
+Figure 29: FDI inflows of China Line plot (1978-2022)
+series = pd.read_csv('china-foreign-direct-investment.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflows  US $']
+plt.figure(figsize=(6, 4))
+plt.plot(series['date'], X)
+plt.ylabel('Inflows US$')
+plt.xlabel('Years')
+plt.grid()
+plt.show()
+
+Figure 30: FDI inflows of China Histogram of frequency distribution of values
+series = pd.read_csv('china-foreign-direct-investment.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflows  US $']
+pyplot.figure(1)
+pyplot.subplot(211)
+X.hist()
+plt.xlabel('Values')
+plt.ylabel('Frequency')
+pyplot.show()
+
+Figure 31: FDI inflows of China Box and Whisker plot (1978-2022)
+series = pd.read_csv('china-foreign-direct-investment.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflows  US $']
+series['10-Year Interval']=series['date'] // 10 * 10
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='10-Year Interval', y=X, data=series)
+plt.xlabel('10-year Interval')
+plt.ylabel('Inflows US$')
+plt.grid()
+plt.show()
+
+FDI Manual model construction
+Dickey Fuller
+
+X= series[' Inflows  US $']
+result = adfuller(X)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+    print('\t%s: %.3f' % (key, value))
+
+Figure 32: FDI ACF and PACF plots	
+series = pd.read_csv('china-foreign-direct-investment.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date'], format='%d/%m/%Y') 
+series['date'] = series['date'].dt.year  
+X = series[' Inflows  US $']
+pyplot.figure()
+pyplot.subplot(211)
+plot_acf(X, lags=20, ax=pyplot.gca())
+pyplot.subplot(212)
+plot_pacf(X, lags=20, ax=pyplot.gca())
+pyplot.show()
+
+Figure 33: FDI predictions on train data with ARIMA (4, 1, 1) model	
+train_size = int(len(y) * 0.88)
+train, test = y[0:train_size], y[train_size:len(y)]
+
+order = (4, 1, 1)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel = ARIMAmodel.fit()
+y_pred = ARIMAmodel.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Inflows US$')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+
+
+Automatic model for GDP
+model = auto_arima(train, suppress_warnings=True)
+print("Best ARIMA Order:", model.order)
+model_fit = ARIMA(train, order=model.order)
+model_fit_result = model_fit.fit()
+print("\nARIMA Model Parameters:")
+print(model_fit_result.summary())
+
+
+Figure 34: FDI predictions on train set with ARIMA (0, 1, 0)	
+order = (0, 1, 0)
+arima_model = ARIMA(train, order=order)
+arima_fit = arima_model.fit()
+y_pred = arima_fit.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = arima_fit.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Inflows US$')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+absolute_percentage_errors = np.abs((test - y_pred_df["Predictions"]) / test) * 100
+mape = absolute_percentage_errors.mean()
+print(f'MAPE: {mape:.2f}%')
+
+
+
+Figure 35: FDI forecast with ARIMA (0, 1, 0)	
+arima_model = ARIMA(X, order=(0, 1, 2))
+arima_fit = arima_model.fit()
+forecast_steps = 10
+forecast = arima_fit.forecast(steps=forecast_steps)
+forecast_dates = pd.date_range(start=X.index[-1] + pd.DateOffset(years=1), periods=forecast_steps, freq='A')
+
+plt.figure(figsize=(10, 6))
+plt.plot(X.index, X, label='Original Data')
+plt.plot(forecast_dates[:2], forecast[:2], label='2-year Forecast', linestyle='solid', color='red')
+plt.plot(forecast_dates[2:], forecast[2:], label='Next 8 Forecasts', linestyle='dashed', color='black')
+plt.annotate(f'{forecast[0]:.2f}', (forecast_dates[1], forecast[1]), textcoords="offset points", xytext=(0, 10), ha='center', color='red')
+plt.text(2023, 3.9 , ' 3.11', ha='right', va='bottom', color='red')
+plt.text(2024, 3 , '2.27', ha='right', va='bottom', color='red')
+plt.xlabel('Year')
+plt.ylabel('Inflows (US $)')
+plt.legend()
+plt.grid()
+plt.show()
+
+Figure 36: Imports of China Line plot (1960-2022)
+series = pd.read_csv('china-imports.csv', skiprows= 16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+plt.figure(figsize=(6, 4))
+plt.plot(series['date'], X)
+plt.ylabel('Billions of US $')
+plt.xlabel('Years')
+plt.grid()
+plt.show()
+
+Figure 37: Imports of China Histogram of frequency distribution of values
+series = pd.read_csv('china-imports.csv', skiprows= 16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+pyplot.figure(1)
+pyplot.subplot(211)
+X.hist()
+plt.xlabel('Values')
+plt.ylabel('Frequency')
+pyplot.show()
+
+Figure 38: Imports of China Box and Whisker plot (1960-2022)
+series = pd.read_csv('china-imports.csv', skiprows= 16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+series['10-Year Interval']=series['date'] // 10 * 10
+plt.figure(figsize=(6, 4))
+sns.boxplot(x='10-Year Interval', y=X, data=series)
+plt.xlabel('10-year Interval')
+plt.ylabel('Billions of US $')
+plt.grid()
+plt.show()
+
+
+Imports Manual model construction
+Dickey Fuller
+series = pd.read_csv('china-imports.csv', skiprows= 16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+result = adfuller(X)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+    print('\t%s: %.3f' % (key, value))
+
+Figure 39: Imports ACF and PACF	
+series = pd.read_csv('china-imports.csv', skiprows= 16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+pyplot.figure()
+pyplot.subplot(211)
+plot_acf(X, lags=17, ax=pyplot.gca())
+pyplot.subplot(212)
+plot_pacf(X, lags=17, ax=pyplot.gca())
+pyplot.show()
+
+Figure 40: Imports predictions on train data with ARIMA (4, 1, 1) model	
+train_size = int(len(y) * 0.88)
+train, test = y[0:train_size], y[train_size:len(y)]
+
+order = (4, 1, 1)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel = ARIMAmodel.fit()
+y_pred = ARIMAmodel.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+
+Automatic model for Imports
+model = auto_arima(train, suppress_warnings=True)
+print("Best ARIMA Order:", model.order)
+model_fit = ARIMA(train, order=model.order)
+model_fit_result = model_fit.fit()
+print("\nARIMA Model Parameters:")
+print(model_fit_result.summary())
+
+
+
+Figure 41: Imports predictions with training set with ARIMA (0, 2, 1)	
+order = (0, 2, 1)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel_fit = ARIMAmodel.fit()
+y_pred = ARIMAmodel_fit.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel_fit.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+plt.plot(dates[0:train_size], train, color="black", label="Training Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Billion of US$')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+absolute_percentage_errors = np.abs((test - y_pred_df["Predictions"]) / test) * 100
+mape = absolute_percentage_errors.mean()
+print(f'MAPE: {mape:.2f}%')
+
+
+
+Figure 42: Imports Forecast with ARIMA (0, 2, 1) model	
+
+model = ARIMA(X, order=(0, 2, 1))
+results = model.fit()
+forecast_steps = 10
+forecast_index = np.arange(len(X), len(X) + forecast_steps)
+forecast_values = results.get_forecast(steps=forecast_steps).predicted_mean)
+
+dates = pd.to_datetime(series['date'])
+plt.figure(figsize=(12, 8))
+plt.plot(dates, X, label='Original Data')
+plt.plot(forecast_index[:2], forecast_values[:2], label='2-year Forecast',linestyle='dashed', color='red', marker='o')
+plt.plot(forecast_index[2:], forecast_values[2:],  label='Next 8 Forecasts', linestyle='dashed', color='black', marker='o')
+plt.text(2023, 3000 , '3275.08', ha='right', va='bottom', color='red')
+plt.text(2024, 3400 , '3412.57', ha='right', va='bottom', color='red')
+plt.text(2031, 4450 , '4512.50', ha='right', va='bottom', color='black')
+plt.xlabel('Billion of US $')
+plt.ylabel('Values')
+plt.legend()
+plt.grid()
+plt.show()
+
+Figure 43: Exports of China Line plot (1960-2022)
+series = pd.read_csv('china-exports.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+plt.figure(figsize=(6, 4))
+plt.plot(series['date'], X)
+plt.ylabel('Billions of US $')
+plt.xlabel('Years')
+plt.grid()
+plt.show()
+
+
+Figure 44: Exports Density plot
+series = pd.read_csv('china-exports.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+pyplot.figure(1)
+pyplot.subplot(211)
+X.hist()
+plt.xlabel('Values')
+plt.ylabel('Frequency')
+pyplot.show()
+
+Figure 45: Exports of China Box and Whisker plot (1960-2022)
+series = pd.read_csv('china-exports.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+series['10-Year Interval']=series['date'] // 10 * 10
+plt.figure(figsize=(6, 4))
+sns.boxplot(x='10-Year Interval', y=X, data=series)
+plt.xlabel('10-year Interval')
+plt.ylabel('Billions of US $')
+plt.grid()
+plt.show()
+
+Exports Manual model construction 
+Dickey Fuller
+series = pd.read_csv('china-exports.csv', skiprows=16)
+X = series[' Billions of US $']result = adfuller(X)
+print('ADF Statistic: %f' % result[0])
+print('p-value: %f' % result[1])
+print('Critical Values:')
+for key, value in result[4].items():
+    print('\t%s: %.3f' % (key, value))
+
+Figure 46: Exports ACF and PACF	
+series = pd.read_csv('china-exports.csv', skiprows=16)
+series['date'] = pd.to_datetime(series['date']) 
+series['date'] = series['date'].dt.year  
+X = series[' Billions of US $']
+pyplot.figure()
+pyplot.subplot(211)
+plot_acf(X, lags=20, ax=pyplot.gca())
+pyplot.subplot(212)
+plot_pacf(X, lags=20, ax=pyplot.gca())
+pyplot.show()
+
+Figure 47: Exports predictions on train data with ARIMA (5, 2, 1) model	
+train_size = int(len(y) * 0.88)
+train, test = y[0:train_size], y[train_size:len(y)]
+
+order = (5, 2, 1)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel = ARIMAmodel.fit()
+y_pred = ARIMAmodel.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+
+plt.figure()
+plt.plot(dates[0:train_size], train, color="black", label="Train Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Billions of US $')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+
+Automatic model for Exports
+model = auto_arima(train, suppress_warnings=True)
+print("Best ARIMA Order:", model.order)
+model_fit = ARIMA(train, order=model.order)
+model_fit_result = model_fit.fit()
+print("\nARIMA Model Parameters:")
+print(model_fit_result.summary())
+
+
+
+Figure 48: Exports predictions made with the training set with ARIMA (0, 2, 3)	
+order = (0, 2, 3)
+ARIMAmodel = ARIMA(train, order=order)
+ARIMAmodel_fit = ARIMAmodel.fit()
+y_pred = ARIMAmodel_fit.get_forecast(steps=len(test))
+y_pred_df = y_pred.conf_int(alpha=0.05)
+y_pred_df["Predictions"] = ARIMAmodel_fit.predict(start=y_pred_df.index[0], end=y_pred_df.index[-1])
+plt.plot(dates[0:train_size], train, color="black", label="Train Data")
+plt.plot(dates[train_size:], test, color="red", label="Test Data")
+plt.ylabel('Billions of US $')
+plt.xlabel('Years')
+plt.plot(dates[train_size:], y_pred_df["Predictions"], color='green', label='ARIMA Predictions')
+plt.legend()
+plt.show()
+arima_rmse = np.sqrt(mean_squared_error(test, y_pred_df["Predictions"]))
+print("RMSE:", arima_rmse)
+absolute_percentage_errors = np.abs((test - y_pred_df["Predictions"]) / test) * 100
+mape = absolute_percentage_errors.mean()
+print(f'MAPE: {mape:.2f}%')
+
+
+Figure 49: Exports Forecast with ARIMA (0, 2, 3) model	
+model = ARIMA(X, order=(0, 2, 3))
+results = model.fit()
+forecast_steps = 10
+forecast_values = results.get_forecast(steps=forecast_steps).predicted_mean
+
+plt.figure(figsize=(10, 6))
+plt.plot(dates, X, label='Original Data')
+plt.plot(forecast_index[:2], forecast_values[:2], label='2-year Forecast',linestyle='dashed', color='red', marker='o')
+plt.plot(forecast_index[2:], forecast_values[2:],  label='Next 8 Forecasts', linestyle='dashed', color='black', marker='o')
+plt.text(pd.to_datetime('2022-01-01'), 3400,  '3712.18', rotation=0, fontsize=11, color='red')
+plt.text(pd.to_datetime('2019-01-01'), 4200,  '3920.44', rotation=0, fontsize=11, color='red')
+plt.text(pd.to_datetime('2025-01-01'), 5400,  '5392.44', rotation=0, fontsize=11, color='black')
+plt.title('0,2,3 model')
+plt.xlabel('Years')
+plt.ylabel('Billions of US $')
+plt.xticks() 
+plt.legend()
+plt.grid()
+plt.show()
+
+Figure 50: Forecasted Values of China (2023-2032)
+years = np.array([2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032]).reshape(-1, 1)
+forecast_gdp = np.array([12600.801514, 14678.500482, 15295.853520, 14910.495259, 16695.318436,
+                         17791.912086, 17323.365909, 18710.138270, 20190.148504, 19812.701847]).reshape(-1, 1)
+forecast_inflation = np.array([3.115434, 2.279638, 2.279638, 2.279638, 2.279638, 2.279638,
+                               2.279638, 2.279638, 2.279638, 2.279638]).reshape(-1, 1)
+forecast_imports = np.array([3275.085283, 3412.576458, 3550.067632, 3687.558806, 3825.049981,
+                             3962.541155, 4100.032329, 4237.523504, 4375.014678, 4512.505852]).reshape(-1, 1)
+forecast_exports = np.array([3712.180218, 3920.447852, 4104.448050, 4288.448247, 4472.448445,
+                             4656.448642, 4840.448839, 5024.449037, 5208.449234, 5392.449432]).reshape(-1, 1)
+forecast_fdi = np.array([180.166881, 180.166881, 180.166881, 180.166881, 180.166881,
+                         180.166881, 180.166881, 180.166881, 180.166881, 180.166881]).reshape(-1, 1)
+combined = np.concatenate([forecast_gdp, forecast_inflation, forecast_imports,
+                                forecast_exports, forecast_fdi], axis=1)
+scaler = MinMaxScaler()
+scaled_data = scaler.fit_transform(combined)
+forecast_gdp, forecast_inflation, forecast_imports, forecast_exports, forecast_fdi = np.hsplit(scaled_data, 5)
+plt.figure(figsize=(10, 6))
+plt.plot(years, forecast_gdp, label='Forecast for GDP Per Capita', marker='o')
+plt.plot(years, forecast_inflation, label='Forecast for Inflation Rate', linewidth= 2, marker='o')
+plt.plot(years, forecast_imports, label='Forecast for Imports', marker='o')
+plt.plot(years, forecast_exports, label='Forecast for Exports', marker='o')
+plt.plot(years, forecast_fdi, label='Forecast for FDI', marker='o')
+plt.xlabel('Years')
+plt.ylabel('Forecasted Values (Scaled)')
+plt.legend()
+plt.grid()
+plt.show()
+
